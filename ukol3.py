@@ -21,13 +21,17 @@ dmp = rasterio.open("DSM_1M_Clip.tif")
 dmt = rasterio.open("DTM_Clip_3.tif")
 dmp_nodata_val = dmp.nodata
 dmt_nodata_val = dmt.nodata
+dmp_meta = dmp.meta
+dmt_meta = dmt.meta
 
+if dmp_meta['crs'] == dmt_meta['crs']:
+    print('OK')
+
+else:
+    print("nn")
 
 bb_dmp = box(dmp.bounds[0], dmp.bounds[1], dmp.bounds[2], dmp.bounds[3])
 bb_dmt = box(dmt.bounds[0], dmt.bounds[1], dmt.bounds[2], dmt.bounds[3])
-
-xminDMP, yminDMP, xmaxDMP, ymaxDMP = dmp.bounds
-xminDMT, yminDMT, xmaxDMT, ymaxDMT = dmt.bounds
 
 intersection = bb_dmp.intersection(bb_dmt)
 
@@ -39,22 +43,30 @@ dmt_intersect_matrix = rasterio.mask.mask(dmt, poly, crop=True)
 
 THRESHOLD = 1 # meters
 
-def create_masking_matrix(dmp_matrix, dmt_matrix, dmp_nodata_val, dmt_nodata_val):
-    masking_matrix = numpy.where((abs(dmp_matrix[0]-dmt_matrix[0])<THRESHOLD) & (dmt_matrix[0] != dmt_nodata_val) & (dmp_matrix[0] != dmp_nodata_val), 1, 0)
-    return masking_matrix
+#spat_ref = dmp_intersect_matrix[]
 
+def create_masking_matrix(dmp_matrix, dmt_matrix, dmp_nodata_val, dmt_nodata_val):
+    disgusting_matrix = dmp_matrix
+    masking_matrix = numpy.where((abs(dmp_matrix[0]-dmt_matrix[0]) < THRESHOLD) & (dmt_matrix[0] != dmt_nodata_val) & (dmp_matrix[0] != dmp_nodata_val), 1, 0)
+    disgusting_matrix[0][0] = masking_matrix
+    return disgusting_matrix
 
 print(create_masking_matrix(dmp_intersect_matrix, dmt_intersect_matrix, dmp_nodata_val, dmt_nodata_val))
 
-
 #print(bb_dmp)
-print(type(dmp_nodata_val))
+#print(type(dmp_nodata_val))
 #print(type(dmt_intersect_matrix[0]))
-#print(dmp_intersect_matrix)
+#print(dmp_intersect_matrix[0])
 #print(dmt_intersect_matrix)
-print(intersection)
-print(type(dmp))
-print(type(bb_dmp))
-print(type(intersection))
+#print(intersection)
+#print(type(dmp))
+#print(type(bb_dmp))
+#print(type(intersection))
 #show(bb_dmp)
 #show(dmt)
+#print(dmp_intersect_matrix[0][0].shape[0])
+#print(dmp_intersect_matrix[0][0].shape[1])
+#print(dmt_intersect_matrix[0][0].shape[0])
+#print(dmt_intersect_matrix[0][0].shape[1])
+#print(dmp_intersect_matrix[0][0])
+#print(dmt_meta)
