@@ -24,6 +24,7 @@ dmt_nodata_val = dmt.nodata
 dmp_meta = dmp.meta
 dmt_meta = dmt.meta
 
+
 if dmp_meta['crs'] == dmt_meta['crs']:
     print('OK')
 
@@ -41,9 +42,11 @@ poly = geometry.MultiPolygon(intersection_to_multipolyg)
 dmp_intersect_matrix = rasterio.mask.mask(dmp, poly, crop=True)
 dmt_intersect_matrix = rasterio.mask.mask(dmt, poly, crop=True)
 
+mask_height = dmp_intersect_matrix[0][0].shape[0]
+mask_width = dmp_intersect_matrix[0][0].shape[1]
+
 THRESHOLD = 1 # meters
 
-#spat_ref = dmp_intersect_matrix[]
 
 def create_masking_matrix(dmp_matrix, dmt_matrix, dmp_nodata_val, dmt_nodata_val):
     disgusting_matrix = dmp_matrix
@@ -51,8 +54,14 @@ def create_masking_matrix(dmp_matrix, dmt_matrix, dmp_nodata_val, dmt_nodata_val
     disgusting_matrix[0][0] = masking_matrix
     return disgusting_matrix
 
-print(create_masking_matrix(dmp_intersect_matrix, dmt_intersect_matrix, dmp_nodata_val, dmt_nodata_val))
+pain=create_masking_matrix(dmp_intersect_matrix, dmt_intersect_matrix, dmp_nodata_val, dmt_nodata_val)
 
+#rasterio.open("finished_mask.tiff","w",driver = "GTiff",height=mask_height, width=mask_width, count=1, nodata=0, dtype="float32", crs=dmp.crs, transform=pain[1])
+show(rasterio.open("finished_mask.tiff","w",driver = "GTiff",height=mask_height, width=mask_width, count=1, nodata=0, dtype="float32", crs=dmp.crs, transform=pain[1]))
+
+
+#print(create_masking_matrix(dmp_intersect_matrix, dmt_intersect_matrix, dmp_nodata_val, dmt_nodata_val))
+print(dmp_meta.GetAttrValue('AUTHORITY',1))
 #print(bb_dmp)
 #print(type(dmp_nodata_val))
 #print(type(dmt_intersect_matrix[0]))
