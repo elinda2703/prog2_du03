@@ -6,6 +6,8 @@ from rasterio.mask import mask
 from shapely import geometry
 from shapely.geometry import box, MultiPolygon
 import numpy
+from copy import deepcopy
+
 '''
 with rasterio.open("DSM_1M_Clip.tif") as dsm:
     kwargs = dsm.meta
@@ -46,19 +48,23 @@ THRESHOLD = 1 # meters
 #spat_ref = dmp_intersect_matrix[]
 
 def create_masking_matrix(dmp_matrix, dmt_matrix, dmp_nodata_val, dmt_nodata_val):
-    disgusting_matrix = dmp_matrix
+    disgusting_matrix = deepcopy(dmp_matrix)
     masking_matrix = numpy.where((abs(dmp_matrix[0]-dmt_matrix[0]) < THRESHOLD) & (dmt_matrix[0] != dmt_nodata_val) & (dmp_matrix[0] != dmp_nodata_val), 1, 0)
     disgusting_matrix[0][0] = masking_matrix
     return disgusting_matrix
 
-print(create_masking_matrix(dmp_intersect_matrix, dmt_intersect_matrix, dmp_nodata_val, dmt_nodata_val))
+
+#print(create_masking_matrix(dmp_intersect_matrix, dmt_intersect_matrix, dmp_nodata_val, dmt_nodata_val))
+#print(dmp_intersect_matrix)
+#print(dmp.meta)
+#print(dmp)
 
 #print(bb_dmp)
 #print(type(dmp_nodata_val))
 #print(type(dmt_intersect_matrix[0]))
 #print(dmp_intersect_matrix[0])
 #print(dmt_intersect_matrix)
-#print(intersection)
+print(intersection)
 #print(type(dmp))
 #print(type(bb_dmp))
 #print(type(intersection))
@@ -70,3 +76,12 @@ print(create_masking_matrix(dmp_intersect_matrix, dmt_intersect_matrix, dmp_noda
 #print(dmt_intersect_matrix[0][0].shape[1])
 #print(dmp_intersect_matrix[0][0])
 #print(dmt_meta)
+
+"""
+. maska +- done
+. pridat prostorove informace (nebo si precist dokumentaci for once a neztratit prostorova data), exportovat raster
+. aplikovat na puvodni rastr, odstranit nepotrebne pixely (numpy.where?)
+. pomoci numpy udelat slope, pripadne pridat prostorova data, exporotvat raster
+. pohrat si s blokama
+. zadani parametrem
+"""
