@@ -60,7 +60,7 @@ def create_masking_matrix(dmp_matrix, dmt_matrix, dmp_nodata_val, dmt_nodata_val
 
 pain=create_masking_matrix(dmp_intersect_matrix, dmt_intersect_matrix, dmp_nodata_val, dmt_nodata_val)
 
-with rasterio.open("finished_mask.tif","w",driver = "GTiff",height=mask_height, width=mask_width, count=1, nodata=0, dtype=dmp.meta["dtype"], crs=CRS.from_wkt('LOCAL_CS["S-JTSK_Krovak_East_North",UNIT["metre",1,AUTHORITY["EPSG","9001"]],AXIS["Easting",EAST],AXIS["Northing",NORTH],AUTHORITY["EPSG","5514"]]'), transform=pain[1]) as peepeepoopoo:
+with rasterio.open("finished_mask.tif","w",driver = "GTiff",height=mask_height, width=mask_width, count=1, nodata=0, dtype=dmp.meta["dtype"], crs='EPSG:5514', transform=pain[1]) as peepeepoopoo:
     peepeepoopoo.write(pain[0])
 
 
