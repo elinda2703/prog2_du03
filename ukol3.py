@@ -22,6 +22,8 @@ with rasterio.open("DSM_1M_Clip.tif") as dsm:
         print (x.shape)
 '''
 
+
+
 with rasterio.open("DSM_1M_Clip.tif") as dmp:
     
     with rasterio.open("DTM_Clip_3.tif") as dmt:
@@ -121,3 +123,4 @@ with rasterio.open("DSM_1M_Clip.tif") as dmp:
         vycistit kod
         nastavit nodata value
         """
+
