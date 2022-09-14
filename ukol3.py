@@ -60,31 +60,30 @@ with rasterio.open("DSM_1M_Clip.tif") as dmp:
 
 
         def create_masking_matrix(dmp_matrix, dmt_matrix, dmp_nodata_val, dmt_nodata_val):
-            disgusting_matrix = deepcopy(dmp_matrix)
             masking_matrix = numpy.where((abs(dmp_matrix[0]-dmt_matrix[0]) < THRESHOLD) & (dmt_matrix[0] != dmt_nodata_val) & (dmp_matrix[0] != dmp_nodata_val), 1, 0)
-            disgusting_matrix[0][0] = masking_matrix
-            return disgusting_matrix
+            return masking_matrix, dmp_matrix[1]
 
         pain=create_masking_matrix(dmp_intersect_matrix, dmt_intersect_matrix, dmp_nodata_val, dmt_nodata_val)
 
-        '''with rasterio.open("finished_mask.tif","w",driver = "GTiff",height=mask_height, width=mask_width, count=1, nodata=0, dtype=dmp.meta["dtype"], crs=rasterio.crs.CRS.from_string('EPSG:5514'), transform=pain[1]) as peepeepoopoo:
-            peepeepoopoo.write(pain[0])'''
+        with rasterio.open("finished_mask.tif","w",driver = "GTiff",height=mask_height, width=mask_width, count=1, nodata=0, dtype=dmp.meta["dtype"], crs=dmp_meta['crs'], transform=pain[1]) as peepeepoopoo:
+            peepeepoopoo.write(pain[0])
 
         def extract_terrain(dmp_matrix, masking_matrix):
-            disgustinger_matrix = deepcopy(masking_matrix)
             extraction = numpy.where(masking_matrix[0] == 1, dmp_matrix[0], 0)
-            disgustinger_matrix[0][0] = extraction
-            return extraction
+            return extraction, masking_matrix[1]
 
         agony = extract_terrain(dmp_intersect_matrix, pain)
+
+        #grad = numpy.gradient(agony[0])
+        print(dmp_meta['crs'])
         #print(create_masking_matrix(dmp_intersect_matrix, dmt_intersect_matrix, dmp_nodata_val, dmt_nodata_val))
         #print(CRS.from_wkt('LOCAL_CS["S-JTSK_Krovak_East_North",UNIT["metre",1,AUTHORITY["EPSG","9001"]],AXIS["Easting",EAST],AXIS["Northing",NORTH],AUTHORITY["EPSG","5514"]]'))
-        print(pain[1])
+        #print(pain[1])
         #print(type(peepeepoopoo))
-        print(intersection)
-        print(poly)
-        print(mask_height)
-        print(mask_width)
+        #print(intersection)
+        #print(poly)
+        #print(mask_height)
+        #print(mask_width)
         #print(create_masking_matrix(dmp_intersect_matrix, dmt_intersect_matrix, dmp_nodata_val, dmt_nodata_val))
         #print(dmp_meta.GetAttrValue('AUTHORITY',1))
         #print(bb_dmp)
@@ -96,7 +95,7 @@ with rasterio.open("DSM_1M_Clip.tif") as dmp:
         plt.imshow(pain[0][0,:,:])
         plt.colorbar()
         plt.figure(2)
-        plt.imshow(agony[0])
+        plt.imshow(agony[0][0])
         plt.colorbar()
         plt.show()
         #plt.imshow(dmp_intersect_matrix[0])
