@@ -9,6 +9,7 @@ from shapely import geometry
 from shapely.geometry import box, MultiPolygon
 import numpy as np
 from matplotlib import pyplot as plt
+import sys, getopt
 
 '''
 with rasterio.open("DSM_1M_Clip.tif") as dsm:
@@ -20,10 +21,32 @@ with rasterio.open("DSM_1M_Clip.tif") as dsm:
         x = dsm.read(1, window=window)
         print (x.shape)
 '''
+terraininput = ""
+surfaceinput = ""
 
-with rasterio.open("DSM_1M_Clip.tif") as dmp:
+def main(argv):
+
+    try:
+        opts, args = getopt.getopt(argv, "t:s:", ["terrain=", "surface="])
     
-    with rasterio.open("DTM_Clip_3.tif") as dmt:
+    except getopt.GetoptError:
+        sys.exit(2)
+
+    for opt, arg in opts:
+        if opt in ("--terrain"):
+            terraininput = arg
+        elif opt in ("--surface"):
+            surfaceinput = arg
+    
+    print(f"Input terrain: {terraininput}")
+    print(f"Input surface: {surfaceinput}")
+
+if __name__ == "__main__":
+    main(sys.argv[1:])
+
+with rasterio.open(surfaceinput) as dmp:
+    
+    with rasterio.open(terraininput) as dmt:
         
         dmp_nodata_val = dmp.nodata
         dmt_nodata_val = dmt.nodata
