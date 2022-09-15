@@ -7,9 +7,9 @@ from rasterio.mask import mask
 from rasterio.crs import CRS
 from shapely import geometry
 from shapely.geometry import box, MultiPolygon
-import numpy
-from copy import deepcopy
+import numpy as np
 from matplotlib import pyplot as plt
+import sys, getopt
 
 '''
 with rasterio.open("DSM_1M_Clip.tif") as dsm:
@@ -21,12 +21,32 @@ with rasterio.open("DSM_1M_Clip.tif") as dsm:
         x = dsm.read(1, window=window)
         print (x.shape)
 '''
+terraininput = ""
+surfaceinput = ""
 
+def main(argv):
 
-
-with rasterio.open("DSM_1M_Clip.tif") as dmp:
+    try:
+        opts, args = getopt.getopt(argv, "t:s:", ["terrain=", "surface="])
     
-    with rasterio.open("DTM_Clip_3.tif") as dmt:
+    except getopt.GetoptError:
+        sys.exit(2)
+
+    for opt, arg in opts:
+        if opt in ("--terrain"):
+            terraininput = arg
+        elif opt in ("--surface"):
+            surfaceinput = arg
+    
+    print(f"Input terrain: {terraininput}")
+    print(f"Input surface: {surfaceinput}")
+
+if __name__ == "__main__":
+    main(sys.argv[1:])
+
+with rasterio.open(surfaceinput) as dmp:
+    
+    with rasterio.open(terraininput) as dmt:
         
         dmp_nodata_val = dmp.nodata
         dmt_nodata_val = dmt.nodata
@@ -35,10 +55,7 @@ with rasterio.open("DSM_1M_Clip.tif") as dmp:
 
         if dmp_meta['crs'] == dmt_meta['crs']:
             print('OK')
-            glob_crs = deepcopy(dmp_meta['crs'])
-            print(glob_crs)
-            str_crs = str("'"+str(glob_crs)+"'")
-            print(str_crs)
+            
         else:
             print("nn")
 
@@ -60,31 +77,75 @@ with rasterio.open("DSM_1M_Clip.tif") as dmp:
 
 
         def create_masking_matrix(dmp_matrix, dmt_matrix, dmp_nodata_val, dmt_nodata_val):
-            disgusting_matrix = deepcopy(dmp_matrix)
-            masking_matrix = numpy.where((abs(dmp_matrix[0]-dmt_matrix[0]) < THRESHOLD) & (dmt_matrix[0] != dmt_nodata_val) & (dmp_matrix[0] != dmp_nodata_val), 1, 0)
-            disgusting_matrix[0][0] = masking_matrix
-            return disgusting_matrix
+            masking_matrix = np.where((abs(dmp_matrix[0]-dmt_matrix[0]) < THRESHOLD) & (dmt_matrix[0] != dmt_nodata_val) & (dmp_matrix[0] != dmp_nodata_val), 1, np.nan)
+            return masking_matrix, dmp_matrix[1]
 
         pain=create_masking_matrix(dmp_intersect_matrix, dmt_intersect_matrix, dmp_nodata_val, dmt_nodata_val)
 
-        '''with rasterio.open("finished_mask.tif","w",driver = "GTiff",height=mask_height, width=mask_width, count=1, nodata=0, dtype=dmp.meta["dtype"], crs=rasterio.crs.CRS.from_string('EPSG:5514'), transform=pain[1]) as peepeepoopoo:
-            peepeepoopoo.write(pain[0])'''
+        with rasterio.open(
+            "finished_mask.tif",
+            "w",
+            driver = "GTiff",
+            height = mask_height, 
+            width = mask_width, 
+            count = 1, 
+            nodata = np.nan, 
+            dtype = dmp.meta["dtype"], 
+            crs = dmp_meta['crs'], 
+            transform = pain[1]) as peepeepoopoo:
+                peepeepoopoo.write(pain[0])
+            # CRS SETTING OPRAVIT
 
         def extract_terrain(dmp_matrix, masking_matrix):
-            disgustinger_matrix = deepcopy(masking_matrix)
-            extraction = numpy.where(masking_matrix[0] == 1, dmp_matrix[0], 0)
-            disgustinger_matrix[0][0] = extraction
-            return extraction
+            extraction = np.where(masking_matrix[0] == 1, dmp_matrix[0], np.nan)
+            return extraction, masking_matrix[1]
 
         agony = extract_terrain(dmp_intersect_matrix, pain)
+
+        with rasterio.open(
+            "surface.tif", 
+            "w",
+            driver = "GTiff",
+            height = mask_height,
+            width = mask_width,
+            count = 1,
+            nodata = np.nan,
+            dtype = dmp.meta["dtype"],
+            crs = dmp_meta['crs'],
+            transform = agony[1]) as society:
+                society.write(agony[0])
+
+        px, py = np.gradient(agony[0][0], 1)
+        slope = np.sqrt(px ** 2 + py ** 2)
+        slope_deg = np.degrees(np.arctan(slope))
+        slope_height=slope_deg.shape[0]
+        slope_width=slope_deg.shape[1]
+        #print(agony[0][0])
+
+        print(slope_height)
+        print(slope_width)
+
+        with rasterio.open(
+            "slopes.tif", 
+            "w",
+            driver = "GTiff",
+            height = slope_height,
+            width = slope_width,
+            count = 1,
+            nodata = np.nan,
+            dtype = dmp.meta["dtype"],
+            crs = dmp_meta['crs'],
+            transform = agony[1]) as garbage:
+                garbage.write(slope_deg, 1)
+
         #print(create_masking_matrix(dmp_intersect_matrix, dmt_intersect_matrix, dmp_nodata_val, dmt_nodata_val))
         #print(CRS.from_wkt('LOCAL_CS["S-JTSK_Krovak_East_North",UNIT["metre",1,AUTHORITY["EPSG","9001"]],AXIS["Easting",EAST],AXIS["Northing",NORTH],AUTHORITY["EPSG","5514"]]'))
-        print(pain[1])
+        #print(pain[1])
         #print(type(peepeepoopoo))
-        print(intersection)
-        print(poly)
-        print(mask_height)
-        print(mask_width)
+        #print(intersection)
+        #print(poly)
+        #print(mask_height)
+        #print(mask_width)
         #print(create_masking_matrix(dmp_intersect_matrix, dmt_intersect_matrix, dmp_nodata_val, dmt_nodata_val))
         #print(dmp_meta.GetAttrValue('AUTHORITY',1))
         #print(bb_dmp)
@@ -92,12 +153,28 @@ with rasterio.open("DSM_1M_Clip.tif") as dmp:
         #print(type(dmt_intersect_matrix[0]))
         #print(dmp_intersect_matrix[0])
         #plt.imshow(full_dmp[0,:,:])
-        plt.figure(1)
+        """
+        figure, axis = plt.subplots(2, 2)
+
+        #plt.figure(1)
         plt.imshow(pain[0][0,:,:])
         plt.colorbar()
-        plt.figure(2)
-        plt.imshow(agony[0])
+        #plt.figure(2)
+        plt.imshow(agony[0][0])
         plt.colorbar()
+        #plt.figure(3)
+        plt.imshow(slope_deg)
+        plt.colorbar()   
+        plt.show()
+        """
+        fig, axis = plt.subplots(1, 3)
+        fig.suptitle("Rasters")
+        axis[0].imshow(pain[0][0,:,:])
+        axis[1].imshow(agony[0][0])
+        axis[2].imshow(slope_deg)
+        axis[0].set_title("Elevation")
+        axis[1].set_title("Mask")
+        axis[2].set_title("Slope")
         plt.show()
         #plt.imshow(dmp_intersect_matrix[0])
         #print(intersection)
