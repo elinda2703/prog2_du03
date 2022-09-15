@@ -83,7 +83,7 @@ with rasterio.open(surfaceinput) as dmp:
         mask_dataset=create_masking_matrix(dmp_intersect_matrix, dmt_intersect_matrix, dmp_nodata_val, dmt_nodata_val)
 
         with rasterio.open(
-            "finished_mask.tif",
+            "mask.tif",
             "w",
             driver = "GTiff",
             height = mask_height, 
@@ -138,35 +138,6 @@ with rasterio.open(surfaceinput) as dmp:
             transform = terrain_dataset[1]) as garbage:
                 garbage.write(slope_deg, 1)
 
-        #print(create_masking_matrix(dmp_intersect_matrix, dmt_intersect_matrix, dmp_nodata_val, dmt_nodata_val))
-        #print(CRS.from_wkt('LOCAL_CS["S-JTSK_Krovak_East_North",UNIT["metre",1,AUTHORITY["EPSG","9001"]],AXIS["Easting",EAST],AXIS["Northing",NORTH],AUTHORITY["EPSG","5514"]]'))
-        #print(pain[1])
-        #print(type(peepeepoopoo))
-        #print(intersection)
-        #print(poly)
-        #print(mask_height)
-        #print(mask_width)
-        #print(create_masking_matrix(dmp_intersect_matrix, dmt_intersect_matrix, dmp_nodata_val, dmt_nodata_val))
-        #print(dmp_meta.GetAttrValue('AUTHORITY',1))
-        #print(bb_dmp)
-        #print(type(dmp_nodata_val))
-        #print(type(dmt_intersect_matrix[0]))
-        #print(dmp_intersect_matrix[0])
-        #plt.imshow(full_dmp[0,:,:])
-        """
-        figure, axis = plt.subplots(2, 2)
-
-        #plt.figure(1)
-        plt.imshow(pain[0][0,:,:])
-        plt.colorbar()
-        #plt.figure(2)
-        plt.imshow(agony[0][0])
-        plt.colorbar()
-        #plt.figure(3)
-        plt.imshow(slope_deg)
-        plt.colorbar()   
-        plt.show()
-        """
         fig, axis = plt.subplots(1, 3)
         fig.suptitle("Rasters")
         axis[0].imshow(mask_dataset[0][0,:,:])
@@ -176,28 +147,10 @@ with rasterio.open(surfaceinput) as dmp:
         axis[1].set_title("Mask")
         axis[2].set_title("Slope")
         plt.show()
-        #plt.imshow(dmp_intersect_matrix[0])
-        #print(intersection)
-        #print(type(dmp))
-        #print(type(bb_dmp))
-        #print(type(intersection))
-        #show(bb_dmp)
-        #print(dmp.meta["dtype"])
-        #print(dmp_intersect_matrix[0][0].shape[0])
-        #print(dmp_intersect_matrix[0][0].shape[1])
-        #print(dmt_intersect_matrix[0][0].shape[0])
-        #print(dmt_intersect_matrix[0][0].shape[1])
-        #print(dmp_intersect_matrix[0][0])
-        #print(dmt_meta)
 
         """
-        . maska +- done
-        . pridat prostorove informace (nebo si precist dokumentaci for once a neztratit prostorova data), exportovat raster
-        . aplikovat na puvodni rastr, odstranit nepotrebne pixely (numpy.where?)
-        . pomoci numpy udelat slope, pripadne pridat prostorova data, exporotvat raster
         . pohrat si s blokama
         . zadani parametrem
         vycistit kod
-        nastavit nodata value
         """
 
