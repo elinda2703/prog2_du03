@@ -80,7 +80,7 @@ with rasterio.open(surfaceinput) as dmp:
             masking_matrix = np.where((abs(dmp_matrix[0]-dmt_matrix[0]) < THRESHOLD) & (dmt_matrix[0] != dmt_nodata_val) & (dmp_matrix[0] != dmp_nodata_val), 1, np.nan)
             return masking_matrix, dmp_matrix[1]
 
-        pain=create_masking_matrix(dmp_intersect_matrix, dmt_intersect_matrix, dmp_nodata_val, dmt_nodata_val)
+        mask_dataset=create_masking_matrix(dmp_intersect_matrix, dmt_intersect_matrix, dmp_nodata_val, dmt_nodata_val)
 
         with rasterio.open(
             "finished_mask.tif",
@@ -92,15 +92,15 @@ with rasterio.open(surfaceinput) as dmp:
             nodata = np.nan, 
             dtype = dmp.meta["dtype"], 
             crs = dmp_meta['crs'], 
-            transform = pain[1]) as peepeepoopoo:
-                peepeepoopoo.write(pain[0])
+            transform = mask_dataset[1]) as mask_export:
+                mask_export.write(mask_dataset[0])
             # CRS SETTING OPRAVIT
 
         def extract_terrain(dmp_matrix, masking_matrix):
             extraction = np.where(masking_matrix[0] == 1, dmp_matrix[0], np.nan)
             return extraction, masking_matrix[1]
 
-        agony = extract_terrain(dmp_intersect_matrix, pain)
+        terrain_dataset = extract_terrain(dmp_intersect_matrix, mask_dataset)
 
         with rasterio.open(
             "surface.tif", 
@@ -112,10 +112,10 @@ with rasterio.open(surfaceinput) as dmp:
             nodata = np.nan,
             dtype = dmp.meta["dtype"],
             crs = dmp_meta['crs'],
-            transform = agony[1]) as society:
-                society.write(agony[0])
+            transform = terrain_dataset[1]) as terrain_export:
+                terrain_export.write(terrain_dataset[0])
 
-        px, py = np.gradient(agony[0][0], 1)
+        px, py = np.gradient(terrain_dataset[0][0], 1)
         slope = np.sqrt(px ** 2 + py ** 2)
         slope_deg = np.degrees(np.arctan(slope))
         slope_height=slope_deg.shape[0]
@@ -135,7 +135,7 @@ with rasterio.open(surfaceinput) as dmp:
             nodata = np.nan,
             dtype = dmp.meta["dtype"],
             crs = dmp_meta['crs'],
-            transform = agony[1]) as garbage:
+            transform = terrain_dataset[1]) as garbage:
                 garbage.write(slope_deg, 1)
 
         #print(create_masking_matrix(dmp_intersect_matrix, dmt_intersect_matrix, dmp_nodata_val, dmt_nodata_val))
@@ -169,8 +169,8 @@ with rasterio.open(surfaceinput) as dmp:
         """
         fig, axis = plt.subplots(1, 3)
         fig.suptitle("Rasters")
-        axis[0].imshow(pain[0][0,:,:])
-        axis[1].imshow(agony[0][0])
+        axis[0].imshow(mask_dataset[0][0,:,:])
+        axis[1].imshow(terrain_dataset[0][0])
         axis[2].imshow(slope_deg)
         axis[0].set_title("Elevation")
         axis[1].set_title("Mask")
