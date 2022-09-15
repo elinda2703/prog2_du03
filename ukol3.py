@@ -2,7 +2,6 @@ import rasterio
 import rasterio.crs
 from rasterio.windows import Window
 from rasterio.transform import Affine
-from rasterio.plot import show
 from rasterio.mask import mask
 from rasterio.crs import CRS
 from shapely import geometry
@@ -10,6 +9,7 @@ from shapely.geometry import box, MultiPolygon
 import numpy as np
 from matplotlib import pyplot as plt
 import sys, getopt
+import argparse
 
 '''
 with rasterio.open("DSM_1M_Clip.tif") as dsm:
@@ -72,7 +72,7 @@ def proceed(surfaceinput, terraininput):
                 count = 1, 
                 nodata = np.nan, 
                 dtype = dmp.meta["dtype"], 
-                crs = dmp_meta['crs'], 
+                crs = dmp.crs, 
                 transform = mask_dataset[1]) as mask_export:
                     mask_export.write(mask_dataset[0])
                 # CRS SETTING OPRAVIT
@@ -103,10 +103,7 @@ def proceed(surfaceinput, terraininput):
             slope_deg = np.degrees(np.arctan(slope))
             slope_height=slope_deg.shape[0]
             slope_width=slope_deg.shape[1]
-            #print(agony[0][0])
 
-            print(slope_height)
-            print(slope_width)
 
             with rasterio.open(
                 "slopes.tif", 
@@ -117,7 +114,7 @@ def proceed(surfaceinput, terraininput):
                 count = 1,
                 nodata = np.nan,
                 dtype = dmp.meta["dtype"],
-                crs = dmp_meta['crs'],
+                crs = dmp.crs,
                 transform = terrain_dataset[1]) as garbage:
                     garbage.write(slope_deg, 1)
 
@@ -137,26 +134,10 @@ def proceed(surfaceinput, terraininput):
             vycistit kod
             """
 
-def main(argv):
-
-    terraininput = ""
-    surfaceinput = ""
-
-    try:
-        opts, args = getopt.getopt(argv, "t:s:", ["terrain=", "surface="])
-    
-    except getopt.GetoptError:
-        sys.exit(2)
-
-    for opt, arg in opts:
-        if opt in ("--terrain"):
-            terraininput = arg
-        elif opt in ("--surface"):
-            surfaceinput = arg
-    
-    print(f"Input terrain: {terraininput}")
-    print(f"Input surface: {surfaceinput}")
-    proceed(surfaceinput, terraininput)
-
 if __name__ == "__main__":
-    main(sys.argv[1:])
+    parser = argparse.ArgumentParser(allow_abbrev=False, description = 'Skript, ktery ze vstupniho DMT a DMP\
+        vytvori rastery sklonu nezastavenych ploch a nalezeny nezastavene plochy.')
+    parser.add_argument('--terrain', action = "store", dest = "terraininput", required = True, help = 'Cesta k DMT ve formatu .tif.')
+    parser.add_argument('--surface', action = "store", dest = "surfaceinput", required = True, help = 'Cesta k DMP ve formatu .tif.')
+    args = parser.parse_args()
+    proceed(args.surfaceinput, args.terraininput)
