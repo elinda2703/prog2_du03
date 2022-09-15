@@ -118,8 +118,26 @@ with rasterio.open(surfaceinput) as dmp:
         px, py = np.gradient(agony[0][0], 1)
         slope = np.sqrt(px ** 2 + py ** 2)
         slope_deg = np.degrees(np.arctan(slope))
+        slope_height=slope_deg.shape[0]
+        slope_width=slope_deg.shape[1]
         #print(agony[0][0])
-        print(slope_deg)
+
+        print(slope_height)
+        print(slope_width)
+
+        with rasterio.open(
+            "slopes.tif", 
+            "w",
+            driver = "GTiff",
+            height = slope_height,
+            width = slope_width,
+            count = 1,
+            nodata = np.nan,
+            dtype = dmp.meta["dtype"],
+            crs = dmp_meta['crs'],
+            transform = agony[1]) as garbage:
+                garbage.write(slope_deg, 1)
+
         #print(create_masking_matrix(dmp_intersect_matrix, dmt_intersect_matrix, dmp_nodata_val, dmt_nodata_val))
         #print(CRS.from_wkt('LOCAL_CS["S-JTSK_Krovak_East_North",UNIT["metre",1,AUTHORITY["EPSG","9001"]],AXIS["Easting",EAST],AXIS["Northing",NORTH],AUTHORITY["EPSG","5514"]]'))
         #print(pain[1])
@@ -135,15 +153,28 @@ with rasterio.open(surfaceinput) as dmp:
         #print(type(dmt_intersect_matrix[0]))
         #print(dmp_intersect_matrix[0])
         #plt.imshow(full_dmp[0,:,:])
-        plt.figure(1)
+        """
+        figure, axis = plt.subplots(2, 2)
+
+        #plt.figure(1)
         plt.imshow(pain[0][0,:,:])
         plt.colorbar()
-        plt.figure(2)
+        #plt.figure(2)
         plt.imshow(agony[0][0])
         plt.colorbar()
-        plt.figure(3)
+        #plt.figure(3)
         plt.imshow(slope_deg)
         plt.colorbar()   
+        plt.show()
+        """
+        fig, axis = plt.subplots(1, 3)
+        fig.suptitle("Rasters")
+        axis[0].imshow(pain[0][0,:,:])
+        axis[1].imshow(agony[0][0])
+        axis[2].imshow(slope_deg)
+        axis[0].set_title("Elevation")
+        axis[1].set_title("Mask")
+        axis[2].set_title("Slope")
         plt.show()
         #plt.imshow(dmp_intersect_matrix[0])
         #print(intersection)
