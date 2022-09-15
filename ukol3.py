@@ -1,5 +1,6 @@
 import rasterio
 import rasterio.crs
+import rasterio.transform
 from rasterio.windows import Window
 from rasterio.transform import Affine
 from rasterio.mask import mask
@@ -26,9 +27,24 @@ with rasterio.open("DSM_1M_Clip.tif") as dsm:
 
 def proceed(surfaceinput, terraininput):
     with rasterio.open(surfaceinput) as dmp:
+        for ji, window in dmp.block_windows(1):
+            # ji is index of the block (starting from (0,0))
+            # window is object with stored window size and offset
+            #print(ji, window)
+            # Read only part defined by window
+
+            dmp_win = dmp.read(1,window=window).astype(float)
+        print(dmp_win)
         
         with rasterio.open(terraininput) as dmt:
             
+            for ji, window in dmt.block_windows(1):
+                # ji is index of the block (starting from (0,0))
+                # window is object with stored window size and offset
+                #print(ji, window)
+                # Read only part defined by window
+                dmt_win = dmt.read(1,window=window).astype(float)
+ 
             dmp_nodata_val = dmp.nodata
             dmt_nodata_val = dmt.nodata
             dmp_meta = dmp.meta
