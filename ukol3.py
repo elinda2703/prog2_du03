@@ -7,8 +7,7 @@ from rasterio.mask import mask
 from rasterio.crs import CRS
 from shapely import geometry
 from shapely.geometry import box, MultiPolygon
-import numpy
-from copy import deepcopy
+import numpy as np
 from matplotlib import pyplot as plt
 
 '''
@@ -22,8 +21,6 @@ with rasterio.open("DSM_1M_Clip.tif") as dsm:
         print (x.shape)
 '''
 
-
-
 with rasterio.open("DSM_1M_Clip.tif") as dmp:
     
     with rasterio.open("DTM_Clip_3.tif") as dmt:
@@ -35,10 +32,7 @@ with rasterio.open("DSM_1M_Clip.tif") as dmp:
 
         if dmp_meta['crs'] == dmt_meta['crs']:
             print('OK')
-            glob_crs = deepcopy(dmp_meta['crs'])
-            print(glob_crs)
-            str_crs = str("'"+str(glob_crs)+"'")
-            print(str_crs)
+            
         else:
             print("nn")
 
@@ -60,22 +54,49 @@ with rasterio.open("DSM_1M_Clip.tif") as dmp:
 
 
         def create_masking_matrix(dmp_matrix, dmt_matrix, dmp_nodata_val, dmt_nodata_val):
-            masking_matrix = numpy.where((abs(dmp_matrix[0]-dmt_matrix[0]) < THRESHOLD) & (dmt_matrix[0] != dmt_nodata_val) & (dmp_matrix[0] != dmp_nodata_val), 1, 0)
+            masking_matrix = np.where((abs(dmp_matrix[0]-dmt_matrix[0]) < THRESHOLD) & (dmt_matrix[0] != dmt_nodata_val) & (dmp_matrix[0] != dmp_nodata_val), 1, np.nan)
             return masking_matrix, dmp_matrix[1]
 
         pain=create_masking_matrix(dmp_intersect_matrix, dmt_intersect_matrix, dmp_nodata_val, dmt_nodata_val)
 
-        with rasterio.open("finished_mask.tif","w",driver = "GTiff",height=mask_height, width=mask_width, count=1, nodata=0, dtype=dmp.meta["dtype"], crs=dmp_meta['crs'], transform=pain[1]) as peepeepoopoo:
-            peepeepoopoo.write(pain[0])
+        with rasterio.open(
+            "finished_mask.tif",
+            "w",
+            driver = "GTiff",
+            height = mask_height, 
+            width = mask_width, 
+            count = 1, 
+            nodata = np.nan, 
+            dtype = dmp.meta["dtype"], 
+            crs = dmp_meta['crs'], 
+            transform = pain[1]) as peepeepoopoo:
+                peepeepoopoo.write(pain[0])
+            # CRS SETTING OPRAVIT
 
         def extract_terrain(dmp_matrix, masking_matrix):
-            extraction = numpy.where(masking_matrix[0] == 1, dmp_matrix[0], 0)
+            extraction = np.where(masking_matrix[0] == 1, dmp_matrix[0], np.nan)
             return extraction, masking_matrix[1]
 
         agony = extract_terrain(dmp_intersect_matrix, pain)
 
-        #grad = numpy.gradient(agony[0])
-        print(dmp_meta['crs'])
+        with rasterio.open(
+            "surface.tif", 
+            "w",
+            driver = "GTiff",
+            height = mask_height,
+            width = mask_width,
+            count = 1,
+            nodata = np.nan,
+            dtype = dmp.meta["dtype"],
+            crs = dmp_meta['crs'],
+            transform = agony[1]) as society:
+                society.write(agony[0])
+
+        px, py = np.gradient(agony[0][0], 1)
+        slope = np.sqrt(px ** 2 + py ** 2)
+        slope_deg = np.degrees(np.arctan(slope))
+        #print(agony[0][0])
+        print(slope_deg)
         #print(create_masking_matrix(dmp_intersect_matrix, dmt_intersect_matrix, dmp_nodata_val, dmt_nodata_val))
         #print(CRS.from_wkt('LOCAL_CS["S-JTSK_Krovak_East_North",UNIT["metre",1,AUTHORITY["EPSG","9001"]],AXIS["Easting",EAST],AXIS["Northing",NORTH],AUTHORITY["EPSG","5514"]]'))
         #print(pain[1])
@@ -97,6 +118,9 @@ with rasterio.open("DSM_1M_Clip.tif") as dmp:
         plt.figure(2)
         plt.imshow(agony[0][0])
         plt.colorbar()
+        plt.figure(3)
+        plt.imshow(slope_deg)
+        plt.colorbar()   
         plt.show()
         #plt.imshow(dmp_intersect_matrix[0])
         #print(intersection)
