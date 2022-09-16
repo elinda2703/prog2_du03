@@ -22,28 +22,24 @@ with rasterio.open("DSM_1M_Clip.tif") as dsm:
         x = dsm.read(1, window=window)
         print (x.shape)
 '''
+def get_raster_intersections (dmp, dmt):
+    bb_dmp = box(dmp.bounds[0], dmp.bounds[1], dmp.bounds[2], dmp.bounds[3])
+    bb_dmt = box(dmt.bounds[0], dmt.bounds[1], dmt.bounds[2], dmt.bounds[3])
+    intersection = bb_dmp.intersection(bb_dmt)
+    poly = geometry.MultiPolygon([intersection])
+    dmp_intersect_matrix = rasterio.mask.mask(dmp, poly, crop=True)
+    dmt_intersect_matrix = rasterio.mask.mask(dmt, poly, crop=True)
+    return dmp_intersect_matrix, dmt_intersect_matrix
 
-
+def matrix_size (matrix):
+    height = matrix.shape[0]
+    width = matrix.shape[1]
+    return height, width
 
 def proceed(surfaceinput, terraininput):
     with rasterio.open(surfaceinput) as dmp:
-        for ji, window in dmp.block_windows(1):
-            # ji is index of the block (starting from (0,0))
-            # window is object with stored window size and offset
-            #print(ji, window)
-            # Read only part defined by window
 
-            dmp_win = dmp.read(1,window=window).astype(float)
-        print(dmp_win)
-        
         with rasterio.open(terraininput) as dmt:
-            
-            for ji, window in dmt.block_windows(1):
-                # ji is index of the block (starting from (0,0))
-                # window is object with stored window size and offset
-                #print(ji, window)
-                # Read only part defined by window
-                dmt_win = dmt.read(1,window=window).astype(float)
  
             dmp_nodata_val = dmp.nodata
             dmt_nodata_val = dmt.nodata
@@ -56,20 +52,14 @@ def proceed(surfaceinput, terraininput):
             else:
                 print("nn")
 
-            bb_dmp = box(dmp.bounds[0], dmp.bounds[1], dmp.bounds[2], dmp.bounds[3])
-            bb_dmt = box(dmt.bounds[0], dmt.bounds[1], dmt.bounds[2], dmt.bounds[3])
+            
 
-            intersection = bb_dmp.intersection(bb_dmt)
 
-            intersection_to_multipolyg = [intersection]
-            poly = geometry.MultiPolygon(intersection_to_multipolyg)
+            dmp_intersect_matrix, dmt_intersect_matrix = get_raster_intersections(dmp,dmt)
 
-            dmp_intersect_matrix = rasterio.mask.mask(dmp, poly, crop=True)
-            dmt_intersect_matrix = rasterio.mask.mask(dmt, poly, crop=True)
 
-            mask_height = dmp_intersect_matrix[0][0].shape[0]
-            mask_width = dmp_intersect_matrix[0][0].shape[1]
 
+            mask_height, mask_width = matrix_size(dmp_intersect_matrix[0][0])
             THRESHOLD = 1 # meters
 
 
