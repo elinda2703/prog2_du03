@@ -113,13 +113,17 @@ def proceed(surfaceinput, terraininput):
                 transform = terrain_dataset[1]) as terrain_export:
                     terrain_export.write(terrain_dataset[0])
             '''
+            def create_slope_matrix (terrain_matrix):
+                px, py = np.gradient(terrain_matrix, 1)
+                slope = np.sqrt(px ** 2 + py ** 2)
+                slope_deg = np.degrees(np.arctan(slope))
+                return slope_deg
 
-            px, py = np.gradient(terrain_dataset[0][0], 1)
-            slope = np.sqrt(px ** 2 + py ** 2)
-            slope_deg = np.degrees(np.arctan(slope))
+            slope_deg=create_slope_matrix(terrain_dataset[0][0])
+
             slope_height=slope_deg.shape[0]
             slope_width=slope_deg.shape[1]
-            #print(agony[0][0])
+
 
             print(slope_height)
             print(slope_width)
@@ -134,19 +138,21 @@ def proceed(surfaceinput, terraininput):
                 nodata = np.nan,
                 dtype = dmp.meta["dtype"],
                 crs = dmp_meta['crs'],
-                transform = terrain_dataset[1]) as garbage:
-                    garbage.write(slope_deg, 1)
+                transform = terrain_dataset[1]) as slope_export:
+                    slope_export.write(slope_deg, 1)
 
-            fig, axis = plt.subplots(1, 3)
-            fig.suptitle("Rasters")
-            axis[0].imshow(mask_dataset[0][0,:,:])
-            axis[1].imshow(terrain_dataset[0][0])
-            axis[2].imshow(slope_deg)
-            axis[0].set_title("Mask")
-            axis[1].set_title("Extracted altitudes")
-            axis[2].set_title("Slope")
-            plt.show()
+            def visualize_rasters (mask_raster, terrain_raster, slope_raster):
+                fig, axis = plt.subplots(1, 3)
+                fig.suptitle("Rasters")
+                axis[0].imshow(mask_raster)
+                axis[1].imshow(terrain_raster)
+                axis[2].imshow(slope_raster)
+                axis[0].set_title("Mask")
+                axis[1].set_title("Extracted altitudes")
+                axis[2].set_title("Slope")
+                plt.show()
 
+            visualize_rasters(mask_dataset[0][0,:,:],terrain_dataset[0][0],slope_deg)
             """
             . pohrat si s blokama
             . zadani parametrem
