@@ -22,28 +22,24 @@ with rasterio.open("DSM_1M_Clip.tif") as dsm:
         x = dsm.read(1, window=window)
         print (x.shape)
 '''
+def get_raster_intersections (dmp, dmt):
+    bb_dmp = box(dmp.bounds[0], dmp.bounds[1], dmp.bounds[2], dmp.bounds[3])
+    bb_dmt = box(dmt.bounds[0], dmt.bounds[1], dmt.bounds[2], dmt.bounds[3])
+    intersection = bb_dmp.intersection(bb_dmt)
+    poly = geometry.MultiPolygon([intersection])
+    dmp_intersect_matrix = rasterio.mask.mask(dmp, poly, crop=True)
+    dmt_intersect_matrix = rasterio.mask.mask(dmt, poly, crop=True)
+    return dmp_intersect_matrix, dmt_intersect_matrix
 
-
+def matrix_size (matrix):
+    height = matrix.shape[0]
+    width = matrix.shape[1]
+    return height, width
 
 def proceed(surfaceinput, terraininput):
     with rasterio.open(surfaceinput) as dmp:
-        for ji, window in dmp.block_windows(1):
-            # ji is index of the block (starting from (0,0))
-            # window is object with stored window size and offset
-            #print(ji, window)
-            # Read only part defined by window
 
-            dmp_win = dmp.read(1,window=window).astype(float)
-        print(dmp_win)
-        
         with rasterio.open(terraininput) as dmt:
-            
-            for ji, window in dmt.block_windows(1):
-                # ji is index of the block (starting from (0,0))
-                # window is object with stored window size and offset
-                #print(ji, window)
-                # Read only part defined by window
-                dmt_win = dmt.read(1,window=window).astype(float)
  
             dmp_nodata_val = dmp.nodata
             dmt_nodata_val = dmt.nodata
@@ -56,20 +52,14 @@ def proceed(surfaceinput, terraininput):
             else:
                 print("nn")
 
-            bb_dmp = box(dmp.bounds[0], dmp.bounds[1], dmp.bounds[2], dmp.bounds[3])
-            bb_dmt = box(dmt.bounds[0], dmt.bounds[1], dmt.bounds[2], dmt.bounds[3])
+            
 
-            intersection = bb_dmp.intersection(bb_dmt)
 
-            intersection_to_multipolyg = [intersection]
-            poly = geometry.MultiPolygon(intersection_to_multipolyg)
+            dmp_intersect_matrix, dmt_intersect_matrix = get_raster_intersections(dmp,dmt)
 
-            dmp_intersect_matrix = rasterio.mask.mask(dmp, poly, crop=True)
-            dmt_intersect_matrix = rasterio.mask.mask(dmt, poly, crop=True)
 
-            mask_height = dmp_intersect_matrix[0][0].shape[0]
-            mask_width = dmp_intersect_matrix[0][0].shape[1]
 
+            mask_height, mask_width = matrix_size(dmp_intersect_matrix[0][0])
             THRESHOLD = 1 # meters
 
 
@@ -113,10 +103,14 @@ def proceed(surfaceinput, terraininput):
                 transform = terrain_dataset[1]) as terrain_export:
                     terrain_export.write(terrain_dataset[0])
             '''
+            def create_slope_matrix (terrain_matrix):
+                px, py = np.gradient(terrain_matrix, 1)
+                slope = np.sqrt(px ** 2 + py ** 2)
+                slope_deg = np.degrees(np.arctan(slope))
+                return slope_deg
 
-            px, py = np.gradient(terrain_dataset[0][0], 1)
-            slope = np.sqrt(px ** 2 + py ** 2)
-            slope_deg = np.degrees(np.arctan(slope))
+            slope_deg=create_slope_matrix(terrain_dataset[0][0])
+
             slope_height=slope_deg.shape[0]
             slope_width=slope_deg.shape[1]
 
@@ -130,20 +124,22 @@ def proceed(surfaceinput, terraininput):
                 count = 1,
                 nodata = np.nan,
                 dtype = dmp.meta["dtype"],
-                crs = dmp.crs,
-                transform = terrain_dataset[1]) as garbage:
-                    garbage.write(slope_deg, 1)
+                crs = dmp_meta['crs'],
+                transform = terrain_dataset[1]) as slope_export:
+                    slope_export.write(slope_deg, 1)
 
-            fig, axis = plt.subplots(1, 3)
-            fig.suptitle("Rasters")
-            axis[0].imshow(mask_dataset[0][0,:,:])
-            axis[1].imshow(terrain_dataset[0][0])
-            axis[2].imshow(slope_deg)
-            axis[0].set_title("Mask")
-            axis[1].set_title("Extracted altitudes")
-            axis[2].set_title("Slope")
-            plt.show()
+            def visualize_rasters (mask_raster, terrain_raster, slope_raster):
+                fig, axis = plt.subplots(1, 3)
+                fig.suptitle("Rasters")
+                axis[0].imshow(mask_raster)
+                axis[1].imshow(terrain_raster)
+                axis[2].imshow(slope_raster)
+                axis[0].set_title("Mask")
+                axis[1].set_title("Extracted altitudes")
+                axis[2].set_title("Slope")
+                plt.show()
 
+            visualize_rasters(mask_dataset[0][0,:,:],terrain_dataset[0][0],slope_deg)
             """
             . pohrat si s blokama
             . zadani parametrem
