@@ -1,6 +1,7 @@
 import rasterio
 import rasterio.crs
 import rasterio.transform
+import rasterio.errors
 from rasterio.windows import Window
 from rasterio.transform import Affine
 from rasterio.mask import mask
@@ -9,7 +10,7 @@ from shapely import geometry
 from shapely.geometry import box, MultiPolygon
 import numpy as np
 from matplotlib import pyplot as plt
-import argparse
+import argparse, sys
 
 
 def get_raster_intersections(raster1, raster2):
@@ -19,7 +20,8 @@ def get_raster_intersections(raster1, raster2):
     intersection_polygon = geometry.MultiPolygon([intersection])
     raster1_intersection = rasterio.mask.mask(raster1, intersection_polygon, crop=True)
     raster2_intersection = rasterio.mask.mask(raster2, intersection_polygon, crop=True)
-    return raster1_intersection, raster2_intersection
+    print(intersection_polygon)
+    return raster1_intersection, raster2_intersection, intersection
 
 def matrix_size(matrix):
     height = matrix.shape[0]
@@ -57,29 +59,38 @@ def proceed(surfaceinput, terraininput):
 
         with rasterio.open(terraininput) as dmt:
  
-            dmp_meta = dmp.meta
-            dmt_meta = dmt.meta
+            try:
 
-            if dmp.crs == dmt.crs:
-                print('OK')
+                if dmp.crs == dmt.crs:
+                    pass
                 
-            else:
-                print("nn")
+                else:
+                    sys.exit("Zvolene rastery nemaji zhodny souradnicovy system, nebo je v nich ruzne zadefinovany. Nelze provest dalsi vypocty.")
+            
+            except rasterio.errors.CRSError(dmp):
+                sys.exit("Ve zvolenem surface rasteru neni definovany validny souradnicovy system.")
+                
+            except rasterio.errors.CRSError(dmt):
+                sys.exit("Ve zvolenem terrain rasteru neni definovany validny souradnicovy system.")  
+            
+            except rasterio.errors.RasterioError():
+                sys.exit("Neco se nepovedlo, program se ted ukonci.")
 
             
-            dmp_intersection, dmt_intersection = get_raster_intersections(dmp, dmt)
+            dmp_intersection, dmt_intersection, inter_coords = get_raster_intersections(dmp, dmt)
             #intersection1, intersection2 = get_raster_intersections(dmp, dmt)
 
             mask_height, mask_width = matrix_size(dmp_intersection[0][0])
             
-            #mask_dataset = create_masking_matrix(dmp_intersection, dmt_intersection, dmp.nodata, dmt.nodata)
+            mask_dataset = create_masking_matrix(dmp_intersection, dmt_intersection, dmp.nodata, dmt.nodata)
             
-            #terrain_dataset = extract_terrain(dmp_intersection, mask_dataset)
+            terrain_dataset = extract_terrain(dmp_intersection, mask_dataset)
 
-            #slope_deg = create_slope_matrix(terrain_dataset[0][0])
+            slope_deg = create_slope_matrix(terrain_dataset[0][0])
 
-            #slope_height, slope_width = matrix_size(slope_deg)
+            slope_height, slope_width = matrix_size(slope_deg)
 
+            
             with rasterio.open(
                 "mask.tiff",
                 "w",
@@ -91,15 +102,15 @@ def proceed(surfaceinput, terraininput):
                 dtype = dmp.meta["dtype"], 
                 crs = dmp.crs, 
                 transform = dmp_intersection[1]) as mask_export:
-
-                    for ji, window in dmp.block_windows(1):
-                        print(ji, window)
+                    mask_export.write(mask_dataset[0])
+                    #for ji, window in dmp.block_windows(1):
+                        #print(ji, window)
                         #dmpwin = dmp.read(1, window=window).astype(float)
                         #dmtwin = dmt.read(1, window=window).astype(float)
-                        mask = create_masking_matrix(dmp_intersection, dmt_intersection, dmp.nodata, dmt.nodata)
+                        #mask = create_masking_matrix(dmp_intersection, dmt_intersection, dmp.nodata, dmt.nodata)
 
                         #mask_export.write(mask[0])
-                        mask_export.write_band(1, mask[0][0].astype(rasterio.float32), window=window)
+                        #mask_export.write_band(1, mask[0][0].astype(rasterio.float32), window=)
                 # CRS SETTING OPRAVIT
 
             with rasterio.open(
@@ -113,18 +124,18 @@ def proceed(surfaceinput, terraininput):
                 dtype = dmp.meta["dtype"],
                 crs = dmp.crs,
                 transform = dmp_intersection[1]) as slope_export:
-
-                    for ji, window in dmp.block_windows(1):
-                        dmpwin = dmp.read(1, window=window).astype(float)
+                    slope_export.write(slope_deg, 1)
+                    #for ji, window in dmp.block_windows(1):
+                        #dmpwin = dmp.read(1, window=window).astype(float)
                         #dmtwin = dmt.read(1, window=window).astype(float)
-                        mask = create_masking_matrix(dmp_intersection, dmt_intersection, dmp.nodata, dmt.nodata)
-                        terrain = extract_terrain(dmpwin, mask)
-                        slopes = create_slope_matrix(terrain[0][0])
-                        slope_export.write_band(1, slopes.astype(rasterio.float32), window=window)
+                        #mask = create_masking_matrix(dmp_intersection, dmt_intersection, dmp.nodata, dmt.nodata)
+                        #terrain = extract_terrain(dmpwin, mask)
+                        #slopes = create_slope_matrix(terrain[0][0])
+                        #slope_export.write_band(1, slopes.astype(rasterio.float32), window=Window(inter_coords[0][0],inter_coords[0][1],inter_coords[0][2],inter_coords[0][3]))
 
             
 
-            visualize_rasters(mask[0][0,:,:],terrain[0][0],slopes)
+            visualize_rasters(mask_dataset[0][0,:,:],terrain_dataset[0][0],slope_deg)
 
 
 if __name__ == "__main__":
