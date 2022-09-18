@@ -45,13 +45,67 @@ def get_raster_intersections(raster1, raster2):
     height1 = row2R1 - row1R1 + 1
     height2 = row2R2 - row1R2 + 1
     
-    raster1_intersection = raster1.read(1, window=Window(col1R1, row1R1, width1, height1))
-    raster2_intersection = raster2.read(1, window=Window(col1R2, row1R2, width2, height2))
+    r1win = raster1.read(1, window=Window(col1R1, row1R1, width1, height1))
+    r2win = raster2.read(1, window=Window(col1R2, row1R2, width2, height2))
+    #raster1_intersection = raster1.read(1, window=Window(col1R1, row1R1, width1, height1))
+    #raster2_intersection = raster2.read(1, window=Window(col1R2, row1R2, width2, height2))
+    print(len(r1win[0]))
+    with rasterio.open(
+        "mask.tiff",
+        "w",
+        driver = "GTiff",
+        height = height1, 
+        width = width1, 
+        count = 1, 
+        nodata = np.nan, 
+        dtype = raster1.meta["dtype"], 
+        crs = raster1.crs, 
+        transform = transform) as mask_export:
+            
+        with rasterio.open(
+                "slopes.tiff", 
+                "w",
+                driver = "GTiff",
+                height = height1,
+                width = width1,
+                count = 1,
+                nodata = np.nan,
+                dtype = raster1.meta["dtype"],
+                crs = raster1.crs,
+                transform = transform) as slope_export:
+            
+            
+            step = 128
+            slices = [(col_start, row_start, step, step) \
+                        for col_start in list(range(0, width1, 128)) \
+                        for row_start in list(range(0, height1, 128))
+            ]
+
+            #for ji, window in raster1.block_windows(1):
+            for slc in slices:
+                win = [*slc]
+                current_block_r1 = r1win[(win[1]):(win[1]+128),win[0]:(win[0]+128)]
+                current_block_r2 = r2win[(win[1]):(win[1]+128),win[0]:(win[0]+128)]
+                
+                mask_dataset = create_masking_matrix(current_block_r1, current_block_r2, raster1.nodata, raster2.nodata)
+                terrain_dataset = extract_terrain(current_block_r1, mask_dataset)
+                slope_deg = create_slope_matrix(terrain_dataset)
+                
+                #if mask_dataset.shape[1] < step or mask_dataset.shape[0] < step:
+                    #row_residue = mask_dataset.shape[0]
+                    #col_residue = mask_dataset.shape[1]
+                    #write_win = Window.from_slices()
+                write_win = Window.from_slices((win[1],(win[1]+mask_dataset.shape[0])), ((win[0],(win[0]+mask_dataset.shape[1]))), boundless=True)
+                
+                mask_export.write_band(1, mask_dataset.astype(rasterio.float32), window=write_win)
+                slope_export.write_band(1, slope_deg.astype(rasterio.float32), window=write_win)
+                
+        #raster_intersection_list = [r1win, r2win]
     #intersection_polygon = geometry.MultiPolygon([intersection])
     #raster1_intersection = rasterio.mask.mask(raster1, intersection_polygon, crop=True)
     #raster2_intersection = rasterio.mask.mask(raster2, intersection_polygon, crop=True)
     #print(intersection_polygon)
-    return raster1_intersection, raster2_intersection, transform
+    #return raster_intersection_list, transform
 
 def matrix_size(matrix):
     height = matrix.shape[0]
@@ -88,7 +142,7 @@ def proceed(surfaceinput, terraininput):
     with rasterio.open(surfaceinput) as dmp:
 
         with rasterio.open(terraininput) as dmt:
- 
+            
             try:
 
                 if dmp.crs == dmt.crs:
@@ -109,10 +163,27 @@ def proceed(surfaceinput, terraininput):
             
             
                 
-            dmp_intersection, dmt_intersection, intersection_transform = get_raster_intersections(dmp, dmt)
+            get_raster_intersections(dmp, dmt)
             #intersection1, intersection2 = get_raster_intersections(dmp, dmt)
-
-            intersection_height, intersection_width = matrix_size(dmp_intersection)
+            #intersection_height, intersection_width = matrix_size(intersection_list[0])
+            
+            """
+            with rasterio.open(
+                "intersection.tiff",
+                "w",
+                driver = "GTiff",
+                height = intersection_height, 
+                width = intersection_width, 
+                count = 2, 
+                nodata = np.nan, 
+                dtype = dmp.meta["dtype"], 
+                crs = dmp.crs, 
+                transform = intersection_transform) as intersection_export:
+                    for id, layer in enumerate(intersection_list, start=1):
+                        with rasterio.open(layer) as src:
+                            intersection_export.write(src.read(1), id)
+            """
+            
             #for ji, window in dmp.block_windows(1):
                 #r = dmp.read(1, window=window)
                 
@@ -121,15 +192,19 @@ def proceed(surfaceinput, terraininput):
             
             #print(r)
             #print(f)
-            mask_dataset = create_masking_matrix(dmp_intersection, dmt_intersection, dmp.nodata, dmt.nodata)
             
-            terrain_dataset = extract_terrain(dmp_intersection, mask_dataset)
+            #with rasterio.open("intersection.tiff") as raster_intersection:
+                
+            
+            #mask_dataset = create_masking_matrix(dmp_intersection, dmt_intersection, dmp.nodata, dmt.nodata)
+            
+            #terrain_dataset = extract_terrain(dmp_intersection, mask_dataset)
 
-            slope_deg = create_slope_matrix(terrain_dataset)
+            #slope_deg = create_slope_matrix(terrain_dataset)
 
             #slope_height, slope_width = matrix_size(slope_deg)
 
-            
+            """
             with rasterio.open(
                 "mask.tiff",
                 "w",
@@ -150,7 +225,7 @@ def proceed(surfaceinput, terraininput):
                         #mask_export.write(mask[0])
                         #mask_export.write_band(1, mask[0][0].astype(rasterio.float32), window=)
                 # CRS SETTING OPRAVIT
-
+                
             with rasterio.open(
                 "slopes.tiff", 
                 "w",
@@ -176,7 +251,7 @@ def proceed(surfaceinput, terraininput):
 
             visualize_rasters(mask_dataset,terrain_dataset,slope_deg)
 
-
+                """
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(allow_abbrev=False, description = 'Skript, ktery ze vstupniho DMT a DMP\
         vytvori rastery sklonu nezastavenych ploch a nalezeny nezastavene plochy.')
