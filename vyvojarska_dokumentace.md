@@ -12,7 +12,7 @@ Pro zpracování vstupních souborů jsou využívany knihovny `rasterio`, `shap
 ## Tolerance pro identifikaci shodného povrchu
 
 Před samotným spuštěním programu je vhodné zkontrolovat a případně změnit hodnotu konstanty `THRESHOLD`, která se nachází ve funkci `proceed()`. Tato konstanta představuje toleranci, do jakého rozdílu
-je terén na stejné ploše v DMT i v DMP považován za shodný. Udáva se v metrech. Přednastavená hodnota je `1` metr. Pokud chce uživatel dosáhnout přesnejších výsledků, je potřeba tuto hodnotu znížit.
+je terén na stejné ploše v DMT i v DMP považován za shodný. Udáva se v metrech. Přednastavená hodnota je `1` metr. Pokud chce uživatel dosáhnout přesnejších výsledků, je potřeba tuto hodnotu snížit.
 
 ## Použity funkce
 
@@ -37,7 +37,7 @@ Následně zavolá funkci `process_by_blocks()`, která provede samotný zápis.
 
 Protože vstupní rastry můžou být velké, je potřebné je zpracovat po částech, aniž by došla paměť. Tyto části reprezentují tzv. bloky. Ve funkci se vytvoří tolik bloků, aby pokryly celý
 průnik rastrů, a následně se blok po bloku postupně převedou výpočty pomocí funkcí `create_masking_matrix`, `extract_terrain` a `create_slope_matrix`. Vypočteny hodnoty se v blocích postupně zapisují do výstupních souborů.
-V programu je velikost bloků nastavena na `128x128` pixelů, tuto hodnotu je možné měnit.
+V programu je velikost bloků nastavena na `128×128` pixelů, tuto hodnotu je možné měnit.
 
 ### create_masking_matrix(dmp_matrix, dmt_matrix, dmp_nodata_val, dmt_nodata_val, threshold)
 
