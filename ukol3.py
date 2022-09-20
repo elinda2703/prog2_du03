@@ -124,7 +124,7 @@ def process_by_blocks(r1_matrix, r2_matrix, mask_export, slope_export,
         # Provedeni vypoctu pro prave iterovany blok
         mask_dataset = create_masking_matrix(current_block_r1, current_block_r2, 
                                              r1_nodata, r2_nodata, threshold)
-        terrain_dataset = extract_terrain(current_block_r1, mask_dataset)
+        terrain_dataset = extract_terrain(current_block_r2, mask_dataset)
         slope_deg = create_slope_matrix(terrain_dataset)
         
         # Pojistka pro pripad, kdy hranice bloku muzou presahovat matici pruniku.
@@ -192,7 +192,7 @@ def create_masking_matrix(dmp_matrix, dmt_matrix, dmp_nodata_val, dmt_nodata_val
     '''
     Funkce vytvori a vrati masku, ktera popisuje povrch.
     Hodnota 1 identifikuje nezastavene oblasti, kde se nadmorske vysky DMP a DMT pohybuji
-    uvnitr stanovene tolerance. Hodnota 0 identifikuje mista, kde je zastavba, stromy i jine prekazky.
+    uvnitr stanovene tolerance. Hodnota numpy.nan identifikuje mista, kde je zastavba, stromy i jine prekazky.
 
         Parametry:
             dmp_matrix (array): Vstupni matice DMP.
@@ -208,15 +208,15 @@ def create_masking_matrix(dmp_matrix, dmt_matrix, dmp_nodata_val, dmt_nodata_val
     # Kde je rozdil nadmorskych vysek pro dany pixel mensi ako stanovena tolerance
     # a zaroven se hodnota daneho pixelu nerovna hodnote pro NoData,
     # povrch se prohlasi za shodny a dosadi se hodnota 1.
-    # Jinak se dosadi np.nan z knihovny NumPy, potrebna pro dalsi operace s touto matici.
+    # Jinak se dosadi numpy.nan z knihovny NumPy, potrebna pro dalsi operace s touto matici.
     masking_matrix = np.where((abs(dmp_matrix-dmt_matrix) < threshold)
                               & (dmt_matrix != dmt_nodata_val) 
                               & (dmp_matrix != dmp_nodata_val), 1, np.nan)
     return masking_matrix
 
-def extract_terrain(dmp_matrix, masking_matrix):
+def extract_terrain(dmt_matrix, masking_matrix):
     '''
-    Funkce extrahuje nezastaveny povrch z DMP (muze i z DMT) pomoci maskovaci matice.
+    Funkce extrahuje nezastaveny povrch z DMT (muze i z DMP) pomoci maskovaci matice.
 
         Parametry:
             dmp_matrix (array): Vstupni matice DMP.
@@ -225,7 +225,7 @@ def extract_terrain(dmp_matrix, masking_matrix):
         Vraci:
             extraction (array): Matice s nadmorskymi vyskami nezastavenych oblasti.
     '''
-    extraction = np.where(masking_matrix == 1, dmp_matrix, np.nan)
+    extraction = np.where(masking_matrix == 1, dmt_matrix, np.nan)
     return extraction
 
 def create_slope_matrix (terrain_matrix):
@@ -260,8 +260,9 @@ def proceed(surfaceinput, terraininput):
     '''
     
     # Otevreni obou rastru pomoci knihovny rasterio
-    with rasterio.open(surfaceinput) as dmp:
 
+    with rasterio.open(surfaceinput) as dmp:
+    
         with rasterio.open(terraininput) as dmt:
             
             try:
@@ -278,6 +279,9 @@ def proceed(surfaceinput, terraininput):
                 
             except rasterio.errors.CRSError(dmt):
                 sys.exit("Ve zvolenem terrain rasteru neni definovany validny souradnicovy system.")  
+            
+            except rasterio.error.RasterioIOError:
+                sys.exit("Vstupni soubory nejsou rastroveho formatu.")
             
             except rasterio.errors.RasterioError():
                 sys.exit("Neco se nepovedlo, program se ted ukonci.")
