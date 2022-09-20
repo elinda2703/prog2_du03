@@ -302,6 +302,9 @@ def proceed(surfaceinput, terraininput):
             # Samotne vytvoreni vystupu
             write_rasters(dmp_intersection, dmt_intersection, kwargs, dmp.nodata, dmt.nodata, THRESHOLD)
             
+'''
+Parser umoznujici zadat vstupni rastry z prikazove radky
+'''            
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(allow_abbrev=False, description = 'Skript, ktery ze vstupniho DMT a DMP\
         vytvori rastery sklonu nezastavenych ploch a nalezeny nezastavene plochy.')
