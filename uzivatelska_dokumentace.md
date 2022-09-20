@@ -7,7 +7,7 @@ a vegetace, a `slopes.tiff`, obsahující vypočtený sklon terénu na místech 
 
 ## Použití
 
-Doporučujeme vytvořit si novou složku, do které umístnite soubor `ukol3.py`. V této složce budou zároveň vytvořeny oba výstupní soubory.
+Doporučujeme vytvořit si novou složku, do které umístníte soubor `ukol3.py`. V této složce budou zároveň vytvořeny oba výstupní soubory.
 Před spuštěním zkontrolujte, jestli vám vyhovuje přednastavená hodnota tolerance (1 metr, proměnná `THRESHOLD`), pomocí které se zjišťuje shodnost povrchu obou vstupních rastrů. Čím vyšší je tato hodnota,
 tím větší rozdíl nadmořských výšek mezi DMP a DMT se na stejné ploše připustí, co snižuje přesnost identifikace skutečných nezastavěných ploch.
 
