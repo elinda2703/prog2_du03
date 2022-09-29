@@ -301,7 +301,7 @@ def proceed(surfaceinput, terraininput):
             # dosazeny do obou vystupu
             kwargs.update(driver="GTiff", dtype=rasterio.float32, compress='lzw',
                           height = intersection_height, width = intersection_width,
-                          transform = transform)
+                          transform = transform, bigtiff = "IF_SAFER")
             
             # Samotne vytvoreni vystupu
             write_rasters(dmp_intersection, dmt_intersection, kwargs, dmp.nodata, dmt.nodata, THRESHOLD)
